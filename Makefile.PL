@@ -1,4 +1,4 @@
-use 5.008004;
+use 5.006004;
 use Inline::MakeMaker;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.

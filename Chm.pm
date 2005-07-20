@@ -1,13 +1,13 @@
 package Archive::Chm;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 use strict;
 use warnings;
 use diagnostics;
 use Inline (
 	    C => Config => LIBS => '-lchm', 
-	    VERSION => '0.05',
+	    VERSION => '0.06',
 	    NAME => __PACKAGE__,
 	    CLEAN_AFTER_BUILD => 0
 	   );
@@ -82,7 +82,14 @@ contents, extracting one or all items in the archive and retrieving an item's le
 
 =head1 METHODS
 
-L<Archive::Chm> has various methods, which can be divided into two categories: methods for working with the chm archive and methods that control how the module works (i.e. logging, overwrite).
+Archive::Chm has various methods, which can be divided into two categories: methods for working with the chm archive and methods that control how the module works (i.e. logging, overwrite).
+
+=cut
+
+
+=head2 Archive Handling Methods
+
+These are methods to effectively work with the archive. All operations that can be performed on the archive are contained herein.
 
 =cut
 
@@ -156,9 +163,9 @@ static char * my_strndup(const char *src, size_t len);
  *																				*
  ********************************************************************************/
 
-=head2  new
+=head3  new
 
-C<< $chmobj = Archive::Chm->new($filename) >>
+ $chmobj = Archive::Chm->new($filename)
 
 Constructor of the Archive::Chm class. It only takes the filename as input and opens the target file, checking for errors. The name of the file is also saved.
 
@@ -175,7 +182,7 @@ SV* new(char* class, char* filename)
 
 	chmfile->is_open = 1;
 	chmfile->error = 0;
-	chmfile->errmsg = NULL;
+	_set_errmsg("No error whatsoever");
     chmfile->filename = strdup(filename);
         
     sv_setiv(obj, (IV)chmfile);
@@ -200,24 +207,17 @@ void DESTROY(SV* obj)
 }
 
 
-=head2 enum_files
+=head3 enum_files
 
-C<< $chmobj->enum_files($out_file, $mode) >>
+ $chmobj->enum_files($out_file, $mode)
 
- Method for enumerating files in the archive. It takes as its input the
- output file (if NULL then stdout) and the mode. There are 2 modes currently
- supported:
-  - 1: prints all files, including dependencies.
-  - 2: prints only the base .html files, without their dependencies,
- like pictures and such.
- Return values: 
-  0 - All OK!
-  1 - file exists, not overwriting due to AUTO_OVERWRITE = 0
-  2 - output file cannot be created/overwritten
-  3 - unknown error in enumeration API
-  4 - unkown enumeration mode requested
-  5 - no chm archive open
- Note that the method was "successfull" with a return value of 1 as well.
+Method for enumerating files in the archive. It takes as its input the
+output file (if NULL then stdout) and the mode. There are two modes currently
+supported: mode 1 prints all files, including dependencies and mode 2 prints only the base .html files, without their dependencies, like pictures and such.
+
+Return values and meanings are: 0 (All OK!), 1 (file exists, not overwriting due to AUTO_OVERWRITE = 0), 2 (output file cannot be created/overwritten), 3 (unkown error in enumeration API), 4 (unknown mode requested), 5 (no chm archive open).
+
+Note that the method was "successfull" with a return value of 1 as well. The err variable is set to the return value unless that value is 0 or 1.
 
 =cut
 int enum_files(SV* obj, char *out_file, int mode)
@@ -325,11 +325,11 @@ int enum_files(SV* obj, char *out_file, int mode)
 }
 
 
-=head2 extract_all
+=head3 extract_all
 
-C<< $chmobj->extract_all($out_dir) >>
+ $chmobj->extract_all($out_dir)
 
-Method for extracting all files from the .chm archive to a given directory. It returns 0 when all went well, 1 when there was an unkown error in enumeration API and 2 when there is no open archive.
+Method for extracting all files from the .chm archive to a given directory. It returns 0 when all went well, 1 when there was an unkown error in enumeration API and 2 when there is no open archive. The err value is set to the return value unless all went well.
 
 =cut
 int extract_all(SV* obj, char *out_dir)
@@ -366,15 +366,15 @@ int extract_all(SV* obj, char *out_dir)
 }
 
 
-=head2 extract_item
+=head3 extract_item
 
-C<< $chmobj->extract_item($item_path, $out_file) >>
+ $html = $chmobj->extract_item($item_path)
 
- Method for retrieving an item, transmitted by it's relative path from the
- .chm archive's root. It returns a string with the file's contents. If there
- was an error, returns NULL and sets the error flag and message.
- 
-=cut
+Method for retrieving an item, transmitted by it's relative path from the
+.chm archive's root. It returns a string with the file's contents. If there
+was an error, returns NULL and sets the error flag and message.
+
+=cut 
 unsigned char* extract_item(SV* obj, char *item_name)
 {
     ChmFile*	chm = (ChmFile*)SvIV(SvRV(obj));
@@ -436,14 +436,14 @@ unsigned char* extract_item(SV* obj, char *item_name)
 }
 
 
-=head2 get_filelist
+=head3 get_filelist
 
-C<< @contents = $chmobj->get_filelist() >>
+ @contents = $chmobj->get_filelist()
 
-  Metod for getting a list of hash references for all elements of the
- archive. Each hash has a maximum of 3 keys, "title", "path" and "size".
- They are self-explanatory.
- 
+Metod for getting a list of hash references for all elements of the
+archive. Each hash has a maximum of 3 keys, "title", "path" and "size".
+They are self-explanatory.
+
 =cut
 void get_filelist(SV* obj)
 {
@@ -480,12 +480,12 @@ void get_filelist(SV* obj)
 
 
 
-=head2 get_item_length
+=head3 get_item_length
 
-C<< $length = $chmobj->get_item_length($item_path) >>
+ $length = $chmobj->get_item_length($item_path)
 
 Method for getting a certain item's length. The item is transmitted by it's
-relative path from the archive's root. The return value is 0 if the item could not be resolved, otherwise it is the actual length of the item.
+relative path from the archive's root. The return value is 0 and the error variable set to 1 if the item could not be resolved, otherwise the return value is the actual length of the item.
 
 =cut
 unsigned long get_item_length(SV* obj, char *item_name)
@@ -529,9 +529,9 @@ unsigned long get_item_length(SV* obj, char *item_name)
 }
 
 
-=head2 get_name
+=head3 get_name
 
-C<< $filename = $chmobj->get_name() >>
+ $filename = $chmobj->get_name()
 
 Method for getting the filename of the attached .chm file.
 
@@ -545,9 +545,9 @@ char* get_name(SV* obj)
 }
 
 
-=head2 close_file
+=head3 close_file
 
-C<< $chmobj->close_file(); >>
+ $chmobj->close_file();
 
 Sometimes you may want to close the associated .chm file while letting
 the Archive::Chm object live on. If you do so, you'll need to open it again
@@ -567,9 +567,9 @@ void close_file(SV* obj)
 }
 
 
-=head2 open_file
+=head3 open_file
 
-C<< $chmobj->open_file(); >>
+ $chmobj->open_file();
 
 While the file is automatically opened at object creation, if you close
 it during the object's lifetime, you will need to reopen it using this
@@ -596,9 +596,16 @@ int open_file(SV* obj)
 }
 
 
-=head2 open_file
+=head2 Control Methods
 
-C<< $chmobj->err($code); >>
+Methods for module control. It should be noted that the error flag is never reset by the module and should be manually reset after it has been checked. Archive::Chm only sets the error flag when an error occurs.
+
+=cut
+
+
+=head3 err
+
+ $chmobj->err($code);
 
 Gets the current error code if $code = -1, otherwise sets it to $code.
 
@@ -612,11 +619,11 @@ int err(SV* obj, int error)
 }
 
 
-=head2 open_file
+=head3 errmsg
 
-C<< $chmobj->errmsg(); >>
+ $chmobj->errmsg();
 
-Gets the error message.
+Gets the string containing the error message corresponding to the last error encountered.
 
 =cut
 char* errmsg(SV* obj)
@@ -687,12 +694,12 @@ static FILE* _set_logfile(char *filename)
 }
 
 
-=head2 set_logfile
+=head3 set_logfile
 
-C<< $chmobj->set_logfile($log_filename)
- $log_filename = $chmobj->set_logfile() >>
+ $chmobj->set_logfile($log_filename);
+ $log_filename = $chmobj->set_logfile();
 
-Method used to get/set the logfile of the module.
+Method used to get/set the logfile of the module. Notable that this is actually a static data member and as such common for all the Archive::Chm objects.
 
 =cut
 char* set_logfile(char* class, char* filename)
@@ -716,12 +723,12 @@ char* set_logfile(char* class, char* filename)
 
 
 
-=head2 set_overwrite
+=head3 set_overwrite
 
-C<< $chmobj->set_overwrite($owr)
- $owr = $chmobj->set_overwrite(-1) >>
+ $chmobj->set_overwrite($owr);
+ $owr = $chmobj->set_overwrite(-1);
 
-Method used to get/set the global AUTO_OVERWRITE flag. Works just 
+Method used to get/set the static AUTO_OVERWRITE flag. Works just 
 like the logfile function above, except that getting the flag requires a value 
 of -1 to be passed.
 
@@ -742,12 +749,12 @@ int set_overwrite(char* class, int owr)
 }
 
 
-=head2 set_verbose
+=head3 set_verbose
 
-C<< $chmobj->set_verbose($verb)
- $verb = $chmobj->set_verbose(-1) >>
+ $chmobj->set_verbose($verb)
+ $verb = $chmobj->set_verbose(-1)
 
-Yet another function to get/set the global VERBOSE flag. Works just like
+Yet another function to get/set the VERBOSE flag. Works just like
 the previous one for AUTO_OVERWRITE.
 
 =cut
@@ -1060,25 +1067,28 @@ static char * my_strndup(const char *src, size_t len)
 
 =head1 See Also
 
- ChmLIB: L<http://66.93.236.84/~jedwin/projects/chmlib/>
- HMTL Help specs: L<http://www.speakeasy.org/~russotto/chm/chmformat.html>
- 
- Domenico Delle Side's module, L<Text::Chm>. It is simpler than  Archive::Chm, 
- but still offers good support for HTML Help archives, including the very
- useful get_filelist() method.
+ChmLIB: http://66.93.236.84/~jedwin/projects/chmlib/
+
+HMTL Help specs: http://www.speakeasy.org/~russotto/chm/chmformat.html
+
+Domenico Delle Side's module, Text::Chm. It is simpler than  Archive::Chm, 
+but still offers good support for HTML Help archives, including the very
+useful get_filelist() method.
 
 =cut
 
 =head1 Author
 
-Alexandru Palade, Netsoft S.R.L. <apalade@netsoft.ro>
-The Text::Chm functions are the work of Domenico Delle Side<dds@gnulinux.it>
+Alexandru Palade <apalade@netsoft.ro>, Netsoft S.R.L.
+
+The Text::Chm functions are the work of Domenico Delle Side <dds@gnulinux.it>
 
 =cut
 
 =head1 Copyright
 
 Copyright (C) 2005 Alexandru Palade, Netsoft S.R.L.
+
 All rights reserved.
 
 =cut

@@ -1,7 +1,7 @@
-ChmFile version 0.05
+Archive::Chm version 0.06
 ====================
 
-ChmFile is a module that provides access to Microsoft Compiled
+Archive::Chm is a module that provides access to Microsoft Compiled
 HTML Help files (chm files). A lot of today's software ships with
 documentation in .chm format. However Microsoft only provides
 viewing tools for their own OS and the company doesn't disclose
@@ -38,7 +38,7 @@ This module requires Jed Wing's chmlib, that can be found at the
 following address: http://66.93.236.84/~jedwin/projects/chmlib/
 
 You need to have it installed in a directory that ld knows about or 
-modify ChmFile.pm before make, to load chmlib from the directory
+modify Chm.pm before make, to load chmlib from the directory
 you have installed it to, with the -Lyourlibdir flag.
 
 COPYRIGHT AND LICENCE
